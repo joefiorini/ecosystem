@@ -13,6 +13,13 @@ func init() {
         ui := &cli.BasicUi{Writer: os.Stdout}
 
         Commands = map[string]cli.CommandFactory{
+
+                "run": func() (cli.Command, error) {
+                  return &command.RunCommand{
+                    Ui: ui,
+                  }, nil
+                },
+
                 "version": func() (cli.Command, error) {
                         return &command.VersionCommand{
                                 Revision:          GitCommit,
