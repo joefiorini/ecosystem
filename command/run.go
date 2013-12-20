@@ -1,7 +1,6 @@
 package command
 
 import (
-  "fmt"
   "flag"
   "io/ioutil"
   "strings"
@@ -11,6 +10,7 @@ import (
 
 type RunCommand struct {
   Ui cli.Ui
+  Debug bool
 }
 
 func (c *RunCommand) Help() string {
@@ -22,21 +22,24 @@ Usage: eco run COMMAND ...
   return strings.TrimSpace(helpText)
 }
 
-// docker run -v /mnt/hgfs/{CURRENT_DIR}:/usr/local/src/app -link {c.LINK_1} -link {c.LINK_2} -name {c.NAME} -u {c.USER} -w /usr/local/src/app {c.TEMPLATE} {c.PREFIX|/usr/bin/zsh -ic} {CMD}
+// docker run -v /mnt/hgfs/{CURRENT_DIR}:/usr/local/src/app -p {ASSIGNED_PORT}:{EXPOSED_PORT} -link {c.LINK_1} -link {c.LINK_2} -name {c.NAME} -u {c.USER} -w /usr/local/src/app {c.TEMPLATE} {c.PREFIX|/usr/bin/zsh -ic} {CMD}
 func (c *RunCommand) Run(args []string) int {
   cmdFlags := flag.NewFlagSet("run", flag.ContinueOnError)
   cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
+  cmdFlags.BoolVar(&c.Debug, "debug", false, "Include extra output for debugging")
+
   if err := cmdFlags.Parse(args); err != nil {
     return 1
   }
 
-  cmd := cmdFlags.Args()
-  if len(cmd) == 0 {
+  runCmd := cmdFlags.Args()
+  if len(runCmd) == 0 {
     c.Ui.Error("You must specify a command.")
     c.Ui.Error("")
     c.Ui.Error(c.Help())
     return 1
   }
+
 
   argFileContents,err := ioutil.ReadFile(".ecosystem")
 
@@ -44,17 +47,15 @@ func (c *RunCommand) Run(args []string) int {
     argFileContents = []byte("")
   }
 
-  cmdString := strings.TrimSpace(strings.Join(cmd, " "))
   runString := strings.TrimSpace(string(argFileContents))
   runArgs := strings.Split(runString, " ")
-  c.Ui.Output(fmt.Sprintf("run %s %s", runString, cmdString))
 
   client := new(docker.Docker)
   client.Addr = "triforce.local"
   client.Port = "4243"
   client.Debug = c.Debug
 
-  client.Run(cmdString, runArgs...)
+  client.Run(runCmd, runArgs...)
 
   return 0
 }

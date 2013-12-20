@@ -4,12 +4,13 @@ import (
   "os"
   "os/exec"
   "fmt"
-  /* "strings" */
+  "strings"
 )
 
 type Docker struct {
   Addr string
   Port string
+  Debug bool
 }
 
 func (docker *Docker) buildCommand(command string, arg ...string) (*exec.Cmd) {
@@ -42,8 +43,12 @@ func (docker *Docker) buildCommand(command string, arg ...string) (*exec.Cmd) {
 
 func (docker *Docker) Exec(command string, arg ...string) (error) {
   cmd := docker.buildCommand(command, arg...)
-  fmt.Println(cmd.Args)
-  /* fmt.Printf("Running command: %s", strings.Join(cmd.Args, " ")) */
+
+  if docker.Debug {
+    fmt.Println(cmd.Args)
+  }
+
+  cmd.Stdin = os.Stdin
   cmd.Stdout = os.Stdout
   cmd.Stderr = os.Stderr
 
@@ -59,9 +64,8 @@ func (docker *Docker) Exec(command string, arg ...string) (error) {
   return err
 }
 
-func (docker *Docker) Run(cmd string, arg ...string) error {
-  cmd = fmt.Sprintf("\"%s\"", cmd)
-  args := append(arg, cmd)
+func (docker *Docker) Run(cmd []string, arg ...string) error {
+  args := append(arg, strings.Join(cmd, " "))
   return docker.Exec("run", args...)
 }
 
